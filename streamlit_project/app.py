@@ -38,10 +38,10 @@ def set_model_params():
     st.write("Max output tokens")
 
     max_output_tokens = st.slider(label="",min_value=1, max_value=1000, value=50)
-    temperature = st.slider("temperature", min_value=1, max_value=1000, value=50)
-    top_p = st.slider("top_p", min_value=1, max_value=1000, value=50)
-    top_k = st.slider("tok_k", min_value=1, max_value=1000, value=50)
-    penealty = st.slider("penealty", min_value=1, max_value=1000, value=50)
+    temperature = st.slider("temperature", min_value=0, max_value=2, value=1)
+    top_p = st.slider("top_p", min_value=10, max_value=1, value=0.50)
+    top_k = st.slider("tok_k", min_value=1, max_value=10000, value=50)
+    penealty = st.slider("penealty", min_value=-2, max_value=2, value=0)
     
     submit = st.button(label="Submit")
 
