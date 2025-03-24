@@ -2,6 +2,29 @@ import streamlit as st
 import requests
 import json
 
+
+max_output_tokens = 1
+temperature = 0.0
+top_p = 0.50
+top_k = 50
+penealty = 0.0
+
+def set_model_params_values(max_output_tokens = 1,
+    temperature = 0.0,
+    top_p = 0.50,
+    top_k = 50,
+    penealty = 0.0
+    ):
+    max_output_tokens = max_output_tokens
+    temperature = temperature
+    top_p = top_p
+    top_k = top_k
+    penealty = penealty
+    
+    return (max_output_tokens,temperature,top_p,top_k,penealty)
+
+
+
 # Initialize session state for chat history and active chat
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = {}  # Store all chats as a dictionary
@@ -38,12 +61,21 @@ def set_model_params():
     st.write("Max output tokens")
 
     max_output_tokens = st.slider(label="",min_value=1, max_value=1000, value=50)
-    temperature = st.slider("temperature", min_value=0, max_value=2, value=1)
-    top_p = st.slider("top_p", min_value=10, max_value=1, value=0.50)
+    temperature = st.slider("temperature", min_value=0.0, max_value=2.0, value=1.0)
+    top_p = st.slider("top_p", min_value=0.0, max_value=1.0, value=0.50)
     top_k = st.slider("tok_k", min_value=1, max_value=10000, value=50)
-    penealty = st.slider("penealty", min_value=-2, max_value=2, value=0)
+    penealty = st.slider("penealty", min_value=-2.0, max_value=2.0, value=0.0)
     
     submit = st.button(label="Submit")
+
+    if submit:
+        parms_values = set_model_params_values(max_output_tokens = max_output_tokens,
+                                temperature = temperature,
+                                top_p = top_p,
+                                top_k = top_k,
+                                penealty = penealty
+        )
+        print(parms_values)
 
 # st.info('This is a purely informational message', icon="ℹ️")
 with st.container():
