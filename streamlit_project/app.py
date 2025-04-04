@@ -48,7 +48,7 @@ with st.sidebar:
     # with st.container:
     st.header("Chats")
     # Button to create a new chat
-    if st.button("New Chat"):
+    if st.button("New Chat"): 
         create_new_chat()
     # Display list of chats and allow switching
     for chat_name in st.session_state.chat_history:
