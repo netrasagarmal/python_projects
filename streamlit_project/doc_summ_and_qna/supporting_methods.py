@@ -3,6 +3,7 @@ from typing import List, Dict, Optional, Union
 import uuid
 from base64 import b64encode
 import tempfile
+import random
 
 
 def create_session() -> str:
@@ -64,6 +65,13 @@ def process_file(uploaded_file ) -> Optional[Dict[str,str]] :
         return None
     
 def qna()->str:
-    return "Hi sagar"
+    a1 = """Introduction
+        LangChain is a framework for developing applications powered by large language models (LLMs)."""
+    a2 = """LangChain simplifies every stage of the LLM application lifecycle:"""
+    a3 = """Development: Build your applications using LangChain's open-source components and third-party integrations. Use LangGraph to build stateful agents with first-class streaming and human-in-the-loop support.
+        Productionization: Use LangSmith to inspect, monitor and evaluate your applications, so that you can continuously optimize and deploy with confidence.
+        Deployment: Turn your LangGraph applications into production-ready APIs and Assistants with LangGraph Platform."""
+    answer = random.choice([a1,a2,a3])
+    return answer
 
     
