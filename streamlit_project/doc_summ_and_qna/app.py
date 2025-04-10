@@ -1,3 +1,171 @@
+import streamlit as st
+import os
+import time
+import uuid
+import json
+import requests
+
+# Initialize session state variables
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+if 'api_key' not in st.session_state:
+    st.session_state.api_key = ""
+if 'text_content' not in st.session_state:
+    st.session_state.text_content = ""
+if 'welcome_done' not in st.session_state:
+    st.session_state.welcome_done = False
+if 'file_uploaded' not in st.session_state:
+    st.session_state.file_uploaded = False
+if 'text_pasted' not in st.session_state:
+    st.session_state.text_pasted = False
+if 'session_id' not in st.session_state:
+    st.session_state.session_id = None
+if 'file_name' not in st.session_state:
+    st.session_state.file_name = None
+
+
+# Welcome dialog - only show if not already done
+if not st.session_state.welcome_done:
+    st.title("Welcome to Document Chat Assistant")
+    st.write("This app allows you to upload a document or paste text, then ask questions about it.")
+    
+    # Options for input
+    input_method = st.radio("Choose your input method:", ("Upload a file (PDF, TXT, DOCX)", "Paste text directly"))
+    
+    # File upload or text area based on selection
+    if input_method == "Upload a file (PDF, TXT, DOCX)":
+        uploaded_file = st.file_uploader("Choose a file", type=['pdf', 'txt', 'docx'])
+        if uploaded_file is not None:
+            st.session_state.file_name = uploaded_file.name
+            st.session_state.text_content = extract_text(uploaded_file)
+            st.session_state.file_uploaded = True
+    else:
+        pasted_text = st.text_area("Paste your text here:", height=200)
+        if pasted_text.strip() != "":
+            st.session_state.text_content = pasted_text
+            st.session_state.text_pasted = True
+    
+    # API key input
+    st.session_state.api_key = st.text_input("Enter your OpenAI API key:", type="password")
+    
+    # Submit button with validation
+    if st.button("Submit"):
+        if not st.session_state.api_key:
+            # st.error("Please enter your OpenAI API key.")
+            st.toast('Please enter your OpenAI API key.', icon='⚠️')
+        elif not st.session_state.file_uploaded and not st.session_state.text_pasted:
+            # st.error("Please either upload a file or paste some text.")
+            st.toast('Please either upload a file or paste some text.', icon='⚠️')
+        else:
+            st.session_state.welcome_done = True
+            # Add welcome message from assistant
+            files = {"file": (uploaded_file.name, uploaded_file, uploaded_file.type)}
+            
+
+            st.session_state.messages.append({"role": "assistant", "content": "Welcome! I've processed your document. Here's a sample summary:"})
+
+            with st.spinner("Wait for it...", show_time=True):
+                # time.sleep(1)
+                session_response = requests.post("http://localhost:8000/create_session", files=files)
+                #create session backend api
+                print(session_response.content, type(session_response.content))
+                content = json.loads(session_response.content)
+                st.session_state.session_id = content["session_id"]
+
+                print(f"session id: {st.session_state.session_id}")
+
+                #delete file
+                delete_file_response = requests.post("http://localhost:8000/delete_temp_file", json={"session_id": st.session_state.session_id})
+                content = json.loads(delete_file_response.content)
+                print(content)
+            
+            if st.session_state.session_id is not None:
+                # Generate sample summary
+                summary = call_openai_chat_model("Please summarize this", st.session_state.api_key, st.session_state.text_content)
+                st.session_state.summary = summary
+                st.session_state.messages.append({"role": "assistant", "content": summary})
+                st.session_state.messages.append({"role": "assistant", "content": "You can now ask me questions about your document."})
+            
+            st.rerun()
+    
+    st.stop()  # Stop execution here until welcome is done
+# Fixed top section
+with st.container():
+    # Main app after welcome is done
+    st.title("Document Chat Assistant")
+
+# if 
+
+st.divider()
+
+# Scrollable chat area
+chat_container = st.container()
+
+with chat_container:
+
+    # Display chat messages
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+# Chat input
+if prompt := st.chat_input("Ask a question about your document..."):
+    # Add user message to chat history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    
+    # Display user message in chat message container
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    
+    # Get assistant response
+    with st.chat_message("assistant"):
+        with st.spinner("Thinking..."):
+            #call qna api
+            time.sleep(2)
+            response = call_openai_chat_model(prompt, st.session_state.api_key, st.session_state.text_content)
+        st.markdown(response)
+    
+    # Add assistant response to chat history
+    st.session_state.messages.append({"role": "assistant", "content": response})
+
+st.divider()
+with st.container():
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        with st.popover("File Info"):
+            st.text(f"File Name: {st.session_state.file_name}")
+    with col2:
+        # Sample data to download
+        data = {
+            "name": "Document Chat Assistant",
+            "version": "1.0",
+            "features": ["chat", "document processing", "Q&A"]
+        }
+
+        # def download_chat()->dict:
+        #     c
+        # Convert to JSON string
+        json_string = json.dumps(st.session_state.messages, indent=4)
+
+        # Download button
+        st.download_button(
+            label="📥 Export Chat",
+            data=json_string,
+            file_name="document_chat_config.json",
+            mime="application/json"
+        )
+
+    with col3:
+        if st.button("Reset"):
+            # Clear all session state variables
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
+
+
+
+
 # # import streamlit as st
 # # from PyPDF2 import PdfReader
 # # import os
@@ -533,112 +701,3 @@
 #         st.session_state.chat_history = []
 #         st.session_state.summary = ""
 #         st.experimental_rerun()
-
-import streamlit as st
-import os
-
-# Dummy function to simulate text extraction
-def extract_text(file):
-    # This is a dummy function that doesn't actually extract text
-    return "This is dummy text extracted from the uploaded file. In a real application, this would contain the actual content of the file."
-
-# Dummy function to simulate OpenAI API call
-def call_openai_chat_model(prompt, api_key, context):
-    # In a real app, you would use the actual OpenAI API here
-    # This is just a simulation that returns dummy responses
-    
-    if "summarize" in prompt.lower():
-        return "This is a sample summary of the provided text. The text discusses various topics and contains important information that would be summarized here in a real application."
-    
-    responses = {
-        "what is this about?": "This is about the content you uploaded or pasted. In a real app, I would analyze it properly.",
-        "tell me more": "The document contains detailed information that would be analyzed here. It might include key points, arguments, or data.",
-        "explain": "The explanation would be based on the actual content of your document or pasted text.",
-        "hello": "Hello! I'm your document assistant. How can I help you with your document today?",
-        "hi": "Hi there! I'm ready to answer questions about your document."
-    }
-    
-    return responses.get(prompt.lower(), "I'm a dummy response simulating what the AI would say about your document or text.")
-
-# Initialize session state variables
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
-if 'api_key' not in st.session_state:
-    st.session_state.api_key = ""
-if 'text_content' not in st.session_state:
-    st.session_state.text_content = ""
-if 'welcome_done' not in st.session_state:
-    st.session_state.welcome_done = False
-if 'file_uploaded' not in st.session_state:
-    st.session_state.file_uploaded = False
-if 'text_pasted' not in st.session_state:
-    st.session_state.text_pasted = False
-
-# Welcome dialog - only show if not already done
-if not st.session_state.welcome_done:
-    st.title("Welcome to Document Chat Assistant")
-    st.write("This app allows you to upload a document or paste text, then ask questions about it.")
-    
-    # Options for input
-    input_method = st.radio("Choose your input method:", ("Upload a file (PDF, TXT, DOCX)", "Paste text directly"))
-    
-    # File upload or text area based on selection
-    if input_method == "Upload a file (PDF, TXT, DOCX)":
-        uploaded_file = st.file_uploader("Choose a file", type=['pdf', 'txt', 'docx'])
-        if uploaded_file is not None:
-            st.session_state.text_content = extract_text(uploaded_file)
-            st.session_state.file_uploaded = True
-    else:
-        pasted_text = st.text_area("Paste your text here:", height=200)
-        if pasted_text.strip() != "":
-            st.session_state.text_content = pasted_text
-            st.session_state.text_pasted = True
-    
-    # API key input
-    st.session_state.api_key = st.text_input("Enter your OpenAI API key:", type="password")
-    
-    # Submit button with validation
-    if st.button("Submit"):
-        if not st.session_state.api_key:
-            st.error("Please enter your OpenAI API key.")
-        elif not st.session_state.file_uploaded and not st.session_state.text_pasted:
-            st.error("Please either upload a file or paste some text.")
-        else:
-            st.session_state.welcome_done = True
-            # Add welcome message from assistant
-            st.session_state.messages.append({"role": "assistant", "content": "Welcome! I've processed your document. Here's a sample summary:"})
-            
-            # Generate sample summary
-            summary = call_openai_chat_model("Please summarize this", st.session_state.api_key, st.session_state.text_content)
-            st.session_state.messages.append({"role": "assistant", "content": summary})
-            st.session_state.messages.append({"role": "assistant", "content": "You can now ask me questions about your document."})
-            
-            st.rerun()
-    
-    st.stop()  # Stop execution here until welcome is done
-
-# Main app after welcome is done
-st.title("Document Chat Assistant")
-
-# Display chat messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# Chat input
-if prompt := st.chat_input("Ask a question about your document..."):
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    
-    # Display user message in chat message container
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    
-    # Get assistant response
-    with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            response = call_openai_chat_model(prompt, st.session_state.api_key, st.session_state.text_content)
-            st.markdown(response)
-    
-    # Add assistant response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": response})
