@@ -56,8 +56,6 @@ if not st.session_state.welcome_done:
         else:
             st.session_state.welcome_done = True
             # Add welcome message from assistant
-            files = {"file": (uploaded_file.name, uploaded_file, uploaded_file.type)}
-            
 
             st.session_state.messages.append({"role": "assistant", "content": "Welcome! I've processed your document. Here's a sample summary:"})
 
@@ -66,28 +64,39 @@ if not st.session_state.welcome_done:
                 create_session_response = requests.get("http://localhost:8000/create_session")
                 content = json.loads(create_session_response.content)
                 st.session_state.session_id = content["session_id"]
-                print(f"session id: {st.session_state.session_id}")
+                print(f"\n session id created : {st.session_state.session_id}")
 
 
                 if input_method == "Upload a file (PDF, TXT, DOCX)":
+                    files = {
+                        "file": (uploaded_file.name, uploaded_file, uploaded_file.type),
+                        "json_payload": json.dumps({"session_id":st.session_state.session_id})
+                        }
 
-                    session_response = requests.post("http://localhost:8000/upload_file", files=files)
+                    upload_file_response = requests.post("http://localhost:8000/upload_file", files=files)
                     #create session backend api
-                    print(session_response.content, type(session_response.content))
-                    content = json.loads(session_response.content)
-                
-                
+                    print("\n\nfile_uploaded")
+                else:
+                    json_payload = {
+                        "session_id": st.session_state.session_id,
+                        "input_text": st.session_state.text_content
+                        }
+                    upload_text_response = requests.post("http://localhost:8000/upload_text", json=json_payload)
+                    #create session backend api
+                    print("\n\ntext uploaded")
 
-                #delete file
-                delete_file_response = requests.post("http://localhost:8000/delete_temp_file", json={"session_id": st.session_state.session_id})
-                content = json.loads(delete_file_response.content)
-                print(content)
+                if input_method == "Upload a file (PDF, TXT, DOCX)":
+                    #delete file
+                    delete_file_response = requests.post("http://localhost:8000/delete_temp_file", json={"session_id": st.session_state.session_id})
+                    content = json.loads(delete_file_response.content)
+                    print(f"\n\nfile deleted, {content}")
             
             if st.session_state.session_id is not None:
                 # Generate sample summary
-                summary = call_openai_chat_model("Please summarize this", st.session_state.api_key, st.session_state.text_content)
-                st.session_state.summary = summary
-                st.session_state.messages.append({"role": "assistant", "content": summary})
+                generate_summary_response = requests.post("http://localhost:8000/generate_summary", json={"session_id": st.session_state.session_id})
+                content = json.loads(generate_summary_response.content)
+                st.session_state.summary = content["file_summary"]
+                st.session_state.messages.append({"role": "assistant", "content": st.session_state.summary})
                 st.session_state.messages.append({"role": "assistant", "content": "You can now ask me questions about your document."})
             
             st.rerun()
@@ -126,11 +135,16 @@ if prompt := st.chat_input("Ask a question about your document..."):
         with st.spinner("Thinking..."):
             #call qna api
             time.sleep(2)
-            response = call_openai_chat_model(prompt, st.session_state.api_key, st.session_state.text_content)
-        st.markdown(response)
+            json_payload={
+                "session_id": st.session_state.session_id,
+                "question": prompt
+            }
+            qna_response = requests.post("http://localhost:8000/qna", json=json_payload)
+            content = json.loads(qna_response)
+        st.markdown(content["answer"])
     
     # Add assistant response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    st.session_state.messages.append({"role": "assistant", "content": content["answer"]})
 
 st.divider()
 with st.container():
