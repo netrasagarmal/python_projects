@@ -10,8 +10,6 @@ if 'messages' not in st.session_state:
     st.session_state.messages = []
 if 'api_key' not in st.session_state:
     st.session_state.api_key = ""
-if 'text_content' not in st.session_state:
-    st.session_state.text_content = ""
 if 'welcome_done' not in st.session_state:
     st.session_state.welcome_done = False
 if 'file_uploaded' not in st.session_state:
@@ -37,7 +35,6 @@ if not st.session_state.welcome_done:
         uploaded_file = st.file_uploader("Choose a file", type=['pdf', 'txt', 'docx'])
         if uploaded_file is not None:
             st.session_state.file_name = uploaded_file.name
-            st.session_state.text_content = extract_text(uploaded_file)
             st.session_state.file_uploaded = True
     else:
         pasted_text = st.text_area("Paste your text here:", height=200)
@@ -66,13 +63,20 @@ if not st.session_state.welcome_done:
 
             with st.spinner("Wait for it...", show_time=True):
                 # time.sleep(1)
-                session_response = requests.post("http://localhost:8000/create_session", files=files)
-                #create session backend api
-                print(session_response.content, type(session_response.content))
-                content = json.loads(session_response.content)
+                create_session_response = requests.get("http://localhost:8000/create_session")
+                content = json.loads(create_session_response.content)
                 st.session_state.session_id = content["session_id"]
-
                 print(f"session id: {st.session_state.session_id}")
+
+
+                if input_method == "Upload a file (PDF, TXT, DOCX)":
+
+                    session_response = requests.post("http://localhost:8000/upload_file", files=files)
+                    #create session backend api
+                    print(session_response.content, type(session_response.content))
+                    content = json.loads(session_response.content)
+                
+                
 
                 #delete file
                 delete_file_response = requests.post("http://localhost:8000/delete_temp_file", json={"session_id": st.session_state.session_id})
