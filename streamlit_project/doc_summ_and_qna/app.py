@@ -4,6 +4,7 @@ import time
 import uuid
 import json
 import requests
+from typing import List, Tuple, Dict, Union, Optional, Any
 
 # Initialize session state variables
 if 'messages' not in st.session_state:
@@ -60,48 +61,81 @@ if not st.session_state.welcome_done:
             st.session_state.messages.append({"role": "assistant", "content": "Welcome! I've processed your document. Here's a sample summary:"})
 
             with st.spinner("Wait for it...", show_time=True):
-                # time.sleep(1)
-                create_session_response = requests.get("http://localhost:8000/create_session")
-                content = json.loads(create_session_response.content)
-                st.session_state.session_id = content["session_id"]
-                print(f"\n session id created : {st.session_state.session_id}")
+                # time.sleep(2)
+                
+                # create_session_response = requests.get("http://localhost:8000/create_session")
+                # content = json.loads(create_session_response.content)
+                # st.session_state.session_id = content["session_id"]
+                # print(f"\n session id created : {st.session_state.session_id}")
 
+                max_retries = 4
+                retry_delay = 1  # seconds
+                create_session_response = None
 
-                if input_method == "Upload a file (PDF, TXT, DOCX)":
-                    files = {
-                        "file": (uploaded_file.name, uploaded_file, uploaded_file.type),
-                        "json_payload": json.dumps({"session_id":st.session_state.session_id})
-                        }
+                for attempt in range(1, max_retries + 1):
+                    try:
+                        create_session_response = requests.get("http://localhost:8000/create_session")
+                        content = json.loads(create_session_response.content)
+                        
+                        session_id = content.get("session_id")
+                        
+                        if session_id:
+                            st.session_state.session_id = session_id
+                            print(f"\n✅ Session ID created on attempt {attempt}: {session_id}")
+                            break
+                        else:
+                            print(f"⚠️ Attempt {attempt}: session_id not found, retrying...")
 
-                    upload_file_response = requests.post("http://localhost:8000/upload_file", files=files)
-                    #create session backend api
-                    print("\n\nfile_uploaded")
-                else:
-                    json_payload = {
-                        "session_id": st.session_state.session_id,
-                        "input_text": st.session_state.text_content
-                        }
-                    upload_text_response = requests.post("http://localhost:8000/upload_text", json=json_payload)
-                    #create session backend api
-                    print("\n\ntext uploaded")
+                    except Exception as e:
+                        print(f"❌ Attempt {attempt}: Exception occurred - {e}")
 
-                if input_method == "Upload a file (PDF, TXT, DOCX)":
-                    #delete file
-                    delete_file_response = requests.post("http://localhost:8000/delete_temp_file", json={"session_id": st.session_state.session_id})
-                    content = json.loads(delete_file_response.content)
-                    print(f"\n\nfile deleted, {content}")
+                    time.sleep(retry_delay)  # wait before next retry
+
+                if create_session_response.status_code == 200 and st.session_state.session_id is not None:
+                    upload_file_response = None
+                    upload_text_response = None
+                    print("\n\n\t uploaded file variable \n\t", uploaded_file)
+                    if input_method == "Upload a file (PDF, TXT, DOCX)":
+                        json_payload = {"session_id":st.session_state.session_id}
+                        files = {
+                            "file": (uploaded_file.name, uploaded_file.getvalue(), uploaded_file.type),
+                            "json_data": (None, json.dumps(json_payload), "application/json"),
+                            }
+                        
+                        upload_file_response = requests.post("http://localhost:8000/upload_file", files=files)
+                        # create session backend api
+                        print(f"\n\nfile_uploaded, {uploaded_file}")
+                    else:
+                        json_payload = {
+                            "session_id": st.session_state.session_id,
+                            "input_text": st.session_state.text_content
+                            }
+                        upload_text_response = requests.post("http://localhost:8000/upload_text", json=json_payload)
+                        #create session backend api
+                        print("\n\ntext uploaded")
+
+                    if input_method == "Upload a file (PDF, TXT, DOCX)" and upload_file_response.status_code == 200:
+                        #delete file
+                        delete_file_response = requests.post("http://localhost:8000/delete_temp_file", json={"session_id": st.session_state.session_id})
+                        content = json.loads(delete_file_response.content)
+                        print(f"\n\nfile deleted, {content}")
             
-            if st.session_state.session_id is not None:
-                # Generate sample summary
-                generate_summary_response = requests.post("http://localhost:8000/generate_summary", json={"session_id": st.session_state.session_id})
-                content = json.loads(generate_summary_response.content)
-                st.session_state.summary = content["file_summary"]
-                st.session_state.messages.append({"role": "assistant", "content": st.session_state.summary})
-                st.session_state.messages.append({"role": "assistant", "content": "You can now ask me questions about your document."})
+                    if st.session_state.session_id is not None:
+                        # Generate sample summary
+                        generate_summary_response = requests.post("http://localhost:8000/generate_summary", json={"session_id": st.session_state.session_id})
+                        content = json.loads(generate_summary_response.content)
+                        st.session_state.summary = content["file_summary"]
+                        st.session_state.messages.append({"role": "assistant", "content": st.session_state.summary})
+                        st.session_state.messages.append({"role": "assistant", "content": "You can now ask me questions about your document."})
+                # else:
+
             
             st.rerun()
     
     st.stop()  # Stop execution here until welcome is done
+
+
+
 # Fixed top section
 with st.container():
     # Main app after welcome is done
@@ -140,7 +174,7 @@ if prompt := st.chat_input("Ask a question about your document..."):
                 "question": prompt
             }
             qna_response = requests.post("http://localhost:8000/qna", json=json_payload)
-            content = json.loads(qna_response)
+            content = json.loads(qna_response.content)
         st.markdown(content["answer"])
     
     # Add assistant response to chat history
