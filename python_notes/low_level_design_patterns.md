@@ -5,11 +5,27 @@ Concept of **Creational**, **Structural**, and **Behavioral** design patterns wi
 ---
 
 ## 🧱 1. **Creational Patterns** – *"How objects are created"*
+> Focus on how objects are created, while hiding the instantiation logic and making the system independent of how its objects are created, composed, or represented.
+> 
+
+### 🔑 Purpose:
+
+- Handle object creation problems.
+- Promote flexibility and reuse.
 
 ### 🎯 Theme: Object Creation
 
 > Think of situations where **you don’t create something directly**, but rely on a structured way to get the object.
 
+### ✅ Key Subtypes:
+
+| Pattern | Purpose |
+| --- | --- |
+| **Singleton** | Ensures a class has **only one instance** and provides a global access point to it. |
+| **Factory Method** | Lets subclasses decide which object to create — uses **inheritance**. |
+| **Abstract Factory** | Creates families of related objects **without specifying concrete classes**. |
+| **Builder** | Separates the construction of a complex object from its representation. |
+| **Prototype** | Creates objects by **cloning** an existing instance rather than creating a new one. |
 ---
 
 ### 🍰 **Example 1: Bakery (Factory Pattern)**
@@ -46,9 +62,30 @@ BurgerBuilder().addLettuce().addCheese().removeOnion().build()
 
 ## 🏗️ 2. **Structural Patterns** – *"How objects are arranged and connected"*
 
+> Deal with the composition of classes and objects — i.e., how to form larger structures while keeping them flexible and efficient.
+> 
+
+### 🔑 Purpose:
+
+- Helps ensure that parts of a system **work together effectively**.
+- Improve **code maintainability**, **scalability**, and **flexibility**.
+
 ### 🎯 Theme: Object Composition
 
 > Think of these like **engineering blueprints** for connecting parts to build a bigger system.
+
+### ✅ Key Subtypes:
+
+| Pattern | Purpose |
+| --- | --- |
+| **Adapter** | Converts the interface of one class into another expected by the client. |
+| **Decorator** | Adds new functionality to objects **dynamically** without modifying their structure. |
+| **Facade** | Provides a simplified **interface** to a complex subsystem. |
+| **Proxy** | Acts as a placeholder or controller for accessing the real object. |
+| **Composite** | Treats individual objects and groups of objects **uniformly** (tree structures). |
+| **Bridge** | Decouples abstraction from implementation so that both can vary independently. |
+| **Flyweight** | Reduces memory usage by **sharing common parts** of objects instead of creating new ones repeatedly. |
+
 
 ---
 
@@ -81,9 +118,33 @@ BurgerBuilder().addLettuce().addCheese().removeOnion().build()
 
 ## 🤝 3. **Behavioral Patterns** – *"How objects communicate"*
 
+> Concerned with object communication — how they interact, communicate, and delegate responsibilities.
+> 
+
+### 🔑 Purpose:
+
+- Improve **communication between objects**.
+- Manage complex control flows or responsibilities.
+
 ### 🎯 Theme: Object Collaboration & Interaction
 
 > These are about **who does what**, **who talks to whom**, and **how**.
+
+### ✅ Key Subtypes:
+
+| Pattern | Purpose |
+| --- | --- |
+| **Strategy** | Selects an algorithm's behavior **at runtime** via composition. |
+| **Observer** | Defines a **1-to-many dependency** where objects are notified of changes. |
+| **Command** | Encapsulates a request as an object, allowing undo/redo, queuing. |
+| **State** | Allows an object to **alter its behavior** when its internal state changes. |
+| **Chain of Responsibility** | Passes a request along a chain of handlers until one handles it. |
+| **Mediator** | Centralizes complex communication between multiple objects. |
+| **Template Method** | Defines the skeleton of an algorithm in the superclass, letting subclasses fill in steps. |
+| **Iterator** | Provides a way to access elements of a collection without exposing its structure. |
+| **Visitor** | Allows new operations to be performed on object structures **without modifying them**. |
+| **Interpreter** | Defines a grammar and interpreter for a language. |
+
 
 ---
 
